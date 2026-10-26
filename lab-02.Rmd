@@ -492,7 +492,14 @@ Let's use the `kingco_homes_clean` data to do some summarise and analysis.
 For all property in Seattle, what's the average total values per sqft [(`land_val` + `imp_val`)/`sqft`] by condition? Also, add the count of properties in each group in the summary table.
 
 ```{r}
-# TODO
+kingco_homes_clean |>
+  filter(city == "SEATTLE") |>
+  mutate(val_per_sqft = (land_val + imp_val) / sqft) |>
+  group_by(condition) |>
+  summarise(
+    avg_val_per_sqft = mean(val_per_sqft, na.rm = TRUE),
+    count = n()
+  )
 
 ```
 
@@ -557,8 +564,43 @@ abline(v = sale_price_mean, col = "red", lwd = 2)
 Repeat the process with smaller sample size, such as `n = 10`, and smaller repeating time, such as 200. What did you find? What interpretation can you give for the central limit theorem from your simulation results?
 
 ```{r}
-# TODO
+bellevue_after2020 <- kingco_sales %>%
+  filter(
+    city == "BELLEVUE",
+    sale_date >= as.Date("2020-01-01")
+  )
+
+# visualize the distribution of sale prices
+hist(
+  bellevue_after2020$sale_price,
+  breaks = 50,
+  main = "Histogram of Bellevue Sale Prices after 2020", 
+  xlab = "Sale Price (USD)"                         
+)
+
+# calculate the average of bellevue_after2020$sale_price
+sale_price_mean = mean(bellevue_after2020$sale_price)
+
+# create sample means; you don't have to anything
+set.seed(79)
+sample_means <- replicate(
+  200,  # we repeat the process (sample -> sample mean -> record) for 1000 times
+  bellevue_after2020 %>%
+    sample_n(10, replace = TRUE) %>% 
+    summarise(avg_price = mean(sale_price)) %>%
+    pull(avg_price)
+)
+
+hist(
+  sample_means,
+  breaks = 50,
+  main = "Sampling Distribution of Mean Sale Price (n = 200)",
+  xlab = "Sample Mean Sale Price (USD)"
+)
+abline(v = sale_price_mean, col = "red", lwd = 2)
 ```
+
+In running this new process, I find that the Sample Mean Sale Price has skewed further right indicating a lower mean sale price from the new sampling. The histogram bars also appear choppier and appear less accurate.
 
 ### 📚 TODO: Explore More
 
@@ -581,8 +623,22 @@ So far, we've learned a lots functions, please use as many as possible to explor
 - `distinct()` and `slice_max()` – handle duplicates
 
 ```{r}
-# TODO
+bellevue <- kingco_sales |>
+  select(city, sale_price, sqft, wfnt) |>
+  filter(city == "BELLEVUE", sqft > 0) |>
+  mutate(price_sqft = sale_price / sqft,
+         waterfront = recode(as.character(wfnt),
+                             "1" = "Waterfront",
+                             "0" = "Not waterfront"))
+
+bellevue |>
+  group_by(waterfront) |> 
+  summarise(n = n(),
+            avg_price_sqft = mean(price_sqft, na.rm = TRUE)) |>
+  arrange(desc(avg_price_sqft))
 ```
+
+This table shows that homes on the waterfront on Bellevue sell for a much higher price than those not on the waterfront. Makes sense!
 
 ### 📚 TODO: Using GitHub
 
